@@ -50,7 +50,7 @@ public class ThreadPool {
         }
     }
 
-    public void invokeAndWaite(Runnable runnable) throws InterruptedException, InvocationTargetException {
+    public void invokeAndWait(Runnable runnable) throws InterruptedException, InvocationTargetException {
         Task task = new Task(runnable, true);
         synchronized (task.getLock()) {
             synchronized (lock) {
@@ -64,7 +64,7 @@ public class ThreadPool {
         }
     }
 
-    public void invokeAndWaiteUninterruptible(Runnable runnable) throws InvocationTargetException {
+    public void invokeAndWaitUninterruptible(Runnable runnable) throws InvocationTargetException {
         Task task = new Task(runnable, true);
         synchronized (task.getLock()) {
             synchronized (lock) {

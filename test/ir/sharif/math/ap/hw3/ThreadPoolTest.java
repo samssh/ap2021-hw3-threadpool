@@ -20,10 +20,17 @@ class ThreadPoolTest {
         this.list = Collections.synchronizedList(new LinkedList<>());
     }
 
-    @Test
-    void invokeLater() throws InvocationTargetException, InterruptedException {
+    void run1() {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        list.add(new Object());
+    }
 
-        // test 1
+    @Test
+    void testInvokeLater() {
         threadPool.invokeLater(this::run1);
         threadPool.invokeLater(this::run1);
         try {
@@ -32,22 +39,17 @@ class ThreadPoolTest {
             e.printStackTrace();
         }
         assertEquals(2, list.size());
-
-        // test 2
-        threadPool.invokeAndWaite(this::run1);
-        assertEquals(3, list.size());
-
-        //test 3
-        threadPool.invokeAndWaiteUninterruptible(this::run1);
-        assertEquals(4, list.size());
     }
 
-    void run1() {
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        list.add(new Object());
+    @Test
+    void invokeAndWait() throws InterruptedException, InvocationTargetException {
+        threadPool.invokeAndWait(this::run1);
+        assertEquals(1, list.size());
+    }
+
+    @Test
+    void invokeAndWaitUninterruptible() throws InvocationTargetException {
+        threadPool.invokeAndWaitUninterruptible(this::run1);
+        assertEquals(1, list.size());
     }
 }
