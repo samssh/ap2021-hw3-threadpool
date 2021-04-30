@@ -32,6 +32,7 @@ public class ThreadPool {
                     Thread thread = threads.remove(threads.size() - 1);
                     thread.stopWorking();
                 }
+                lock.notifyAll();
             } else {
                 while (threads.size() < threadNumbers) {
                     Thread thread = new Thread();
@@ -101,6 +102,9 @@ public class ThreadPool {
                             ThreadPool.this.lock.wait();
                         } catch (InterruptedException e) {
                             e.printStackTrace(); // unreachable state
+                        }
+                        if (!isActive()) {
+                            break;
                         }
                     }
                     task = tasks.remove(tasks.size() - 1);
