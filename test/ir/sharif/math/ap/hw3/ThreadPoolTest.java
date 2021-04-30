@@ -30,7 +30,7 @@ class ThreadPoolTest {
     }
 
     @Test
-    void testInvokeLater() {
+    void invokeLater() {
         threadPool.invokeLater(this::run1);
         threadPool.invokeLater(this::run1);
         try {
