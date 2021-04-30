@@ -9,28 +9,23 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ThreadPoolTest {
     private ThreadPool threadPool;
-    private List<Object> list = Collections.synchronizedList(new LinkedList<>());
+    private List<Object> list;
 
     @BeforeEach
     void setUp() {
-
+        this.threadPool = new ThreadPool(3);
+        this.list = Collections.synchronizedList(new LinkedList<>());
     }
 
     @Test
     void invokeLater() throws InvocationTargetException, InterruptedException {
-        this.threadPool = new ThreadPool(1);
+
+        // test 1
         threadPool.invokeLater(this::run1);
         threadPool.invokeLater(this::run1);
-        try {
-            Thread.sleep(1100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        assertEquals(1, list.size());
         try {
             Thread.sleep(1100);
         } catch (InterruptedException e) {
@@ -39,13 +34,12 @@ class ThreadPoolTest {
         assertEquals(2, list.size());
 
         // test 2
-        long start = System.currentTimeMillis();
         threadPool.invokeAndWaite(this::run1);
-        assertTrue(System.currentTimeMillis() - start > 1000);
+        assertEquals(3, list.size());
 
-        start = System.currentTimeMillis();
+        //test 3
         threadPool.invokeAndWaiteUninterruptible(this::run1);
-        assertTrue(System.currentTimeMillis() - start > 1000);
+        assertEquals(4, list.size());
     }
 
     void run1() {
