@@ -25,14 +25,6 @@ class ThreadPoolTest {
         this.testThread = Thread.currentThread();
     }
 
-    void sleep(long l) {
-        try {
-            Thread.sleep(l);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
     @Test
     void invokeLater() {
         long startTime = System.currentTimeMillis();
@@ -50,6 +42,11 @@ class ThreadPoolTest {
         threadPool.invokeAndWait(this::run1);
         assertEquals(1, map.size());
         long endTime = System.currentTimeMillis();
+        assertTime(startTime, endTime, RUN1_SLEEP + TIME_SAFE_MARGIN);
+        startTime = System.currentTimeMillis();
+        threadPool.invokeAndWaitUninterruptible(this::run1);
+        assertEquals(2, map.size());
+        endTime = System.currentTimeMillis();
         assertTime(startTime, endTime, RUN1_SLEEP + TIME_SAFE_MARGIN);
     }
 
@@ -69,7 +66,24 @@ class ThreadPoolTest {
     }
 
     @Test
-    void threadNumberTest() {
+    void increaseThreadNumberTest() {
+        long startTime = System.currentTimeMillis();
+        threadPool.setThreadNumbers(3);
+        for (int i = 0; i < 9; i++) {
+            threadPool.invokeLater(this::run1);
+        }
+        sleep(RUN1_SLEEP);
+        sleep(TIME_SAFE_MARGIN);
+        long endTime = System.currentTimeMillis();
+        assertTime(startTime, endTime, RUN1_SLEEP + 2 * TIME_SAFE_MARGIN);
+        assertEquals(3, map.size());
+        threadPool.setThreadNumbers(6);
+        sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
+        assertEquals(9, map.size());
+    }
+
+    @Test
+    void decreaseThreadNumberTest() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(3);
         for (int i = 0; i < 6; i++) {
@@ -102,28 +116,54 @@ class ThreadPoolTest {
     }
 
     @Test
-    void invokeAndWaitUninterruptible() {
+    void interruptTest() {
         threadPool.invokeLater(this::run2);
         assertDoesNotThrow(() -> threadPool.invokeAndWaitUninterruptible(this::run1));
         assertEquals(1, map.size());
+        threadPool.invokeLater(this::run2);
+        assertThrows(InterruptedException.class, () -> threadPool.invokeAndWait(this::run1));
+        assertEquals(2, map.size());
     }
 
-    void run1() {
+    @Test
+    void throwTest() {
+        RuntimeException runtimeException = new RuntimeException();
+        InvocationTargetException invocationTargetException = assertThrows(InvocationTargetException.class,
+                () -> threadPool.invokeAndWaitUninterruptible(() -> throwRun(runtimeException)));
+        assertSame(invocationTargetException.getTargetException(), runtimeException);
+        invocationTargetException = assertThrows(InvocationTargetException.class,
+                () -> threadPool.invokeAndWait(() -> throwRun(runtimeException)));
+        assertSame(invocationTargetException.getTargetException(), runtimeException);
+    }
+
+    private void run1() {
         sleep(RUN1_SLEEP);
         map.put(new Object(), new Object());
     }
 
-    void run2() {
+    private void run2() {
         sleep(RUN2_SLEEP);
         testThread.interrupt();
     }
 
-    void run3() {
+    private void run3() {
         sleep(RUN3_SLEEP);
         assertDoesNotThrow(() -> threadPool.invokeLater(this::run1));
     }
 
-    private static void assertTime(long start, long end, long expectedDuration) {
+    private void throwRun(RuntimeException throwable) {
+        throw throwable;
+    }
+
+    private void assertTime(long start, long end, long expectedDuration) {
         assertTrue(end - start <= expectedDuration);
+    }
+
+    void sleep(long l) {
+        try {
+            Thread.sleep(l);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
