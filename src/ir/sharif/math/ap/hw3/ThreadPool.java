@@ -57,7 +57,7 @@ public class ThreadPool {
                 tasks.add(task);
                 lock.notifyAll();
             }
-            while (!task.isDone())
+            while (task.isNotDone())
                 task.getLock().wait();
             if (task.getThrowable() != null)
                 throw new InvocationTargetException(task.getThrowable());
@@ -71,7 +71,7 @@ public class ThreadPool {
                 tasks.add(task);
                 lock.notifyAll();
             }
-            while (!task.isDone()) {
+            while (task.isNotDone()) {
                 try {
                     task.getLock().wait();
                 } catch (InterruptedException ignore) {
@@ -171,8 +171,8 @@ public class ThreadPool {
             return lock;
         }
 
-        public boolean isDone() {
-            return done;
+        public boolean isNotDone() {
+            return !done;
         }
 
         public void setDone() {
