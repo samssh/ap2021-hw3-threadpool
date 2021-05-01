@@ -115,7 +115,6 @@ public class ThreadPool {
                     } catch (Throwable throwable) {
                         if (task.isWaiting())
                             task.setThrowable(throwable);
-                        else new InvocationTargetException(throwable).printStackTrace();
                     }
                     task.setDone();
                     task.getLock().notifyAll();
