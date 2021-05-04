@@ -1,32 +1,35 @@
 package ir.sharif.math.ap.hw3;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+
+import org.junit.Before;
+import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 
-class ThreadPoolTest {
-    private final long TIME_SAFE_MARGIN = 50;
-    private final long RUN1_SLEEP = 200;
-    private final long RUN2_SLEEP = 100;
-    private final long RUN3_SLEEP = 10;
+
+public class ThreadPoolTest {
+    private static final long TIME_SAFE_MARGIN = 50;
+    private static final long RUN1_SLEEP = 200;
+    private static final long RUN2_SLEEP = 100;
+    private static final long RUN3_SLEEP = 10;
     private ThreadPool threadPool;
     private Map<Object, Object> map;
     private Thread testThread;
+    private Throwable throwable;
 
-    @BeforeEach
-    void setUp() {
+    @Before
+    public void setUp() {
         this.threadPool = new ThreadPool(3);
         this.map = new ConcurrentHashMap<>();
         this.testThread = Thread.currentThread();
     }
 
     @Test
-    void invokeLater() {
+    public void invokeLater() {
         long startTime = System.currentTimeMillis();
         threadPool.invokeLater(this::run1);
         threadPool.invokeLater(this::run1);
@@ -37,7 +40,7 @@ class ThreadPoolTest {
     }
 
     @Test
-    void invokeAndWait() throws InterruptedException, InvocationTargetException {
+    public void invokeAndWait() throws InterruptedException, InvocationTargetException {
         long startTime = System.currentTimeMillis();
         threadPool.invokeAndWait(this::run1);
         assertEquals(1, map.size());
@@ -51,7 +54,7 @@ class ThreadPoolTest {
     }
 
     @Test
-    void parallelRun() {
+    public void parallelRun() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(5);
         for (int i = 0; i < 10; i++) {
@@ -66,7 +69,7 @@ class ThreadPoolTest {
     }
 
     @Test
-    void increaseThreadNumberTest() {
+    public void increaseThreadNumberTest() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(3);
         for (int i = 0; i < 9; i++) {
@@ -83,7 +86,7 @@ class ThreadPoolTest {
     }
 
     @Test
-    void decreaseThreadNumberTest() {
+    public void decreaseThreadNumberTest() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(3);
         for (int i = 0; i < 6; i++) {
@@ -103,7 +106,7 @@ class ThreadPoolTest {
     }
 
     @Test
-    void threadSafeTest() {
+    public void threadSafeTest() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(10);
         for (int i = 0; i < 10; i++) {
@@ -113,20 +116,22 @@ class ThreadPoolTest {
         long endTime = System.currentTimeMillis();
         assertTime(startTime, endTime, RUN1_SLEEP + RUN3_SLEEP + 2 * TIME_SAFE_MARGIN);
         assertEquals(10, map.size());
+        assertNull(throwable);
     }
 
     @Test
-    void interruptTest() {
+    public void interruptTest() {
         threadPool.invokeLater(this::run2);
         assertDoesNotThrow(() -> threadPool.invokeAndWaitUninterruptible(this::run1));
         assertEquals(1, map.size());
         threadPool.invokeLater(this::run2);
         assertThrows(InterruptedException.class, () -> threadPool.invokeAndWait(this::run1));
         assertEquals(2, map.size());
+        assertNull(throwable);
     }
 
     @Test
-    void throwTest() {
+    public void throwTest() {
         RuntimeException runtimeException = new RuntimeException();
         InvocationTargetException invocationTargetException = assertThrows(InvocationTargetException.class,
                 () -> threadPool.invokeAndWaitUninterruptible(() -> throwRun(runtimeException)));
@@ -151,6 +156,24 @@ class ThreadPoolTest {
         assertDoesNotThrow(() -> threadPool.invokeLater(this::run1));
     }
 
+    private void assertDoesNotThrow(ThrowingRunnable runnable) {
+        try {
+            runnable.run();
+        } catch (Throwable t) {
+            throwable = t;
+        }
+    }
+
+    private static <T extends Throwable> T assertThrows(Class<T> tClass, ThrowingRunnable runnable) {
+        try {
+            runnable.run();
+        } catch (Throwable t) {
+            assertTrue(tClass.isInstance(t));
+            return (T) t;
+        }
+        return null;
+    }
+
     private void throwRun(RuntimeException throwable) {
         throw throwable;
     }
@@ -165,5 +188,9 @@ class ThreadPoolTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    private interface ThrowingRunnable {
+        void run() throws Throwable;
     }
 }
