@@ -7,7 +7,8 @@ public class Executor {
     private final List<Job> jobsLeft;
     private final List<Job> jobsEnded;
     private final ThreadPool threadPool;
-    private final Object lock, lock2;
+    private final Object lock2;
+    private final PriorityLocker locker;
     private int runningJobs;
 
     public Executor(Map<String, Integer> resources, List<Job> jobs, int initialThreadNumber) {
@@ -15,7 +16,7 @@ public class Executor {
         this.jobsLeft = new LinkedList<>(jobs);
         this.jobsEnded = new LinkedList<>();
         this.runningJobs = 0;
-        this.lock = new Object();
+        this.locker = new PriorityLocker(2);
         this.lock2 = new Object();
         this.threadPool = new ThreadPool(initialThreadNumber + 1);
         threadPool.invokeLater(this::run);
@@ -23,35 +24,22 @@ public class Executor {
 
     public void setThreadNumbers(int threadNumbers) {
         synchronized (lock2) {
-            threadPool.setThreadNumbers(threadNumbers);
+            threadPool.setThreadNumbers(threadNumbers + 1);
         }
     }
 
 
     private void run() {
         while (jobsLeft.size() > 0) {
-            synchronized (lock2) {
-                checkJobsForRun();
-            }
-            synchronized (lock) {
-                while (jobsEnded.size() > 0) {
-                    try {
-                        lock.wait();
-                    } catch (InterruptedException ignored) {
-                    }
+            for (Iterator<Job> iterator = jobsLeft.iterator(); iterator.hasNext(); ) {
+                locker.lock(2);
+                Job job = iterator.next();
+                if (job.getResources().stream().allMatch(s -> resources.get(s) > 0)
+                        && runningJobs < threadPool.getThreadNumbers() - 1) {
+                    iterator.remove();
+                    runJob(job);
                 }
-                releaseResources();
-            }
-        }
-    }
-
-    public void checkJobsForRun() {
-        for (Iterator<Job> iterator = jobsLeft.iterator(); iterator.hasNext(); ) {
-            Job job = iterator.next();
-            if (job.getResources().stream().allMatch(s -> resources.get(s) > 0)
-                    && runningJobs < threadPool.getThreadNumbers() - 1) {
-                iterator.remove();
-                runJob(job);
+                locker.release();
             }
         }
     }
@@ -64,17 +52,58 @@ public class Executor {
 
     private void doJob(Job job) {
         job.getRunnable().run();
-        synchronized (lock) {
-            jobsEnded.add(job);
-            lock.notifyAll();
-        }
+        locker.lock(1);
+        runningJobs = runningJobs - 1;
+        job.getResources().forEach(s -> resources.put(s, resources.get(s) - 1));
+        locker.release();
     }
 
-    private void releaseResources() {
-        for (Job job : jobsEnded) {
-            runningJobs = runningJobs - 1;
-            job.getResources().forEach(s -> resources.put(s, resources.get(s) - 1));
+    static class PriorityLocker {
+        private volatile boolean busy;
+        private final Object locker;
+        private final Object[] locks;
+        private final int[] members;
+        private final int max_priority;
+
+        PriorityLocker(int max_priority) {
+            this.max_priority = max_priority;
+            locker = new Object();
+            locks = new Object[this.max_priority];
+            members = new int[this.max_priority];
+            for (int i = 0; i < this.max_priority; i++) {
+                locks[i] = new Object();
+            }
         }
-        jobsEnded.clear();
+
+        void lock(int priority) {
+            synchronized (locker) {
+                synchronized (locks[priority - 1]) {
+                    members[priority - 1]++;
+                    while (busy) {
+                        try {
+                            locks[priority - 1].wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    members[priority - 1]--;
+                    busy = true;
+                }
+            }
+        }
+
+        void release() {
+            synchronized (locker) {
+                for (int i = 0; i < max_priority; i++) {
+                    synchronized (locks[i]) {
+                        if (members[i] > 0) {
+                            busy = false;
+                            locks[i].notifyAll();
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
