@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class Executor {
+public class JobRunner {
     private final Map<String, Integer> resources;
     private final List<Job> jobsLeft;
     private final ThreadPool threadPool;
@@ -15,7 +15,7 @@ public class Executor {
     private int runningJobs;
 
 
-    public Executor(Map<String, Integer> resources, List<Job> jobs, int initialThreadNumber) {
+    public JobRunner(Map<String, Integer> resources, List<Job> jobs, int initialThreadNumber) {
         this.resources = new ConcurrentHashMap<>(resources);
         this.jobsLeft = new LinkedList<>(jobs);
         this.locker = new PriorityLocker(2);
@@ -27,7 +27,6 @@ public class Executor {
     public void setThreadNumbers(int threadNumbers) {
             threadPool.setThreadNumbers(threadNumbers + 1);
     }
-
 
     private void run() {
         while (jobsLeft.size() > 0) {

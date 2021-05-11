@@ -13,7 +13,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class ExecutorTest {
+public class JobRunnerTest {
     private static final long TIME_SAFE_MARGIN = 50;
     private static final long RUN1_SLEEP = 100;
     private static final long RUN2_SLEEP = 200;
@@ -25,7 +25,7 @@ public class ExecutorTest {
     private static final long RUN0_SLEEP = 10;
     private Map<Object, Object> map;
     private List<Object> list;
-    private Executor executor;
+    private JobRunner jobRunner;
     private Map<String, Integer> resources;
 
     @Before
@@ -49,7 +49,7 @@ public class ExecutorTest {
         Job job3 = new Job(() -> run1(RUN5_SLEEP, 0), "f", "g");
         Job job4 = new Job(() -> run1(RUN2_SLEEP, 0), "a", "d");
         long startTime = System.currentTimeMillis();
-        executor = new Executor(resources, Arrays.asList(job1, job2, job3, job4), 4);
+        jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3, job4), 4);
         sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
         long endTime = System.currentTimeMillis();
         assertEquals(1, map.size());
@@ -74,7 +74,7 @@ public class ExecutorTest {
         job4 = 0 to 300
        */
         long startTime = System.currentTimeMillis();
-        executor = new Executor(resources, Arrays.asList(job1, job2, job3, job4), 2);
+        jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3, job4), 2);
         sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
         long endTime = System.currentTimeMillis();
         assertEquals(1, map.size());
@@ -100,7 +100,7 @@ public class ExecutorTest {
         job4 = 900 to 1000
        */
         long startTime = System.currentTimeMillis();
-        executor = new Executor(resources, Arrays.asList(job1, job2, job3, job4), 2);
+        jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3, job4), 2);
         sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
         long endTime = System.currentTimeMillis();
         assertEquals(1, list.size());
