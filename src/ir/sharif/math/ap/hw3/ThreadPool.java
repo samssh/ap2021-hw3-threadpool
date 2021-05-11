@@ -14,7 +14,8 @@ public class ThreadPool {
         tasks = new LinkedList<>();
         lock = new Object();
         for (int i = 0; i < threadNumbers; i++) {
-            threads.add(new Thread());
+            Thread thread = new Thread();
+            threads.add(thread);
         }
         threads.forEach(java.lang.Thread::start);
     }
@@ -104,7 +105,7 @@ public class ThreadPool {
                             e.printStackTrace(); // unreachable state
                         }
                         if (!isActive()) {
-                            break;
+                            return;
                         }
                     }
                     task = tasks.remove(tasks.size() - 1);
