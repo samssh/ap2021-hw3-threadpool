@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -19,9 +20,6 @@ public class JobRunnerTest {
     private static final long RUN3_SLEEP = 300;
     private static final long RUN4_SLEEP = 400;
     private static final long RUN5_SLEEP = 500;
-    private static final long RUN6_SLEEP = 600;
-    private static final long RUN7_SLEEP = 700;
-    private static final long RUN0_SLEEP = 10;
     private Map<Object, Object> map;
     private List<Integer> list;
     private JobRunner jobRunner;
@@ -30,7 +28,7 @@ public class JobRunnerTest {
     @Before
     public void setUp() throws Exception {
         map = new ConcurrentHashMap<>();
-        list = new LinkedList<>();
+        list = new CopyOnWriteArrayList<>();
         resources = new HashMap<>();
         resources.put("a", 1);
         resources.put("b", 1);
@@ -156,8 +154,9 @@ public class JobRunnerTest {
     @Test
     @Repeat(10)
     public void checkFreeze2() { // check this
-        Job job1 = new Job(() -> run2(RUN2_SLEEP, RUN4_SLEEP, 1), "a");
-        Job job2 = new Job(() -> run2(RUN1_SLEEP, RUN3_SLEEP, 2), "b");
+//        System.out.println("**************************************");
+        Job job1 = new Job(() -> run2(RUN4_SLEEP, RUN4_SLEEP, 1), "a");
+        Job job2 = new Job(() -> run2(RUN2_SLEEP, RUN4_SLEEP, 2), "b");
         Job job3 = new Job(() -> run2(RUN2_SLEEP, 0, 3), "c");
         /*
         job1 = 0 to 200, 400 to 800
@@ -206,7 +205,12 @@ public class JobRunnerTest {
         assertEquals(1, list.get(0).intValue());
         sleep(RUN1_SLEEP);
         // 350
+        long startTime = System.currentTimeMillis();
         jobRunner.setThreadNumbers(2);
+        long endTime = System.currentTimeMillis();
+        assertTime(startTime, endTime, RUN2_SLEEP + TIME_SAFE_MARGIN);
+        assertTime2(startTime, endTime, RUN1_SLEEP);
+
         // 500
         sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
         // 650
@@ -275,9 +279,7 @@ public class JobRunnerTest {
 
     private long run2(long sleep, long returnSleep, int id) {
         sleep(sleep);
-        synchronized (list) {
-            list.add(id);
-        }
+        list.add(id);
         return returnSleep;
     }
 

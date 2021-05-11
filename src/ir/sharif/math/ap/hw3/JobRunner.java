@@ -53,7 +53,6 @@ public class JobRunner {
                 }
             }
         }
-        threadPool.setThreadNumbers(0);
     }
 
     private void doJob(Job job) {

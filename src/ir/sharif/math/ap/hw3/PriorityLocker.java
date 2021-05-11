@@ -2,30 +2,22 @@ package ir.sharif.math.ap.hw3;
 
 public class PriorityLocker {
     private boolean busy;
-    private final SimpleLock locker;
-    private final Object[] locks;
+    private final Object locks;
     private final int[] members;
-    private final int max_priority;
+    private final int maxPriority;
 
-    public PriorityLocker(int max_priority) {
-        this.max_priority = max_priority;
-        locker = new SimpleLock();
-        locks = new Object[this.max_priority];
-        members = new int[this.max_priority];
-        for (int i = 0; i < this.max_priority; i++) {
-            locks[i] = new Object();
-        }
+    public PriorityLocker(int maxPriority) {
+        this.maxPriority = maxPriority;
+        locks = new Object();
+        members = new int[this.maxPriority];
     }
 
     public void lock(int priority) {
-        locker.lock();
-        synchronized (locks[priority - 1]) {
+        synchronized (locks) {
             members[priority - 1]++;
-            while (busy) {
+            while (busy || getMinPriority() != priority) {
                 try {
-                    locker.release();
-                    locks[priority - 1].wait();
-                    locker.lock();
+                    locks.wait();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -33,20 +25,19 @@ public class PriorityLocker {
             members[priority - 1]--;
             busy = true;
         }
-        locker.release();
+    }
+
+    public int getMinPriority() {
+        for (int i = 0; i < maxPriority; i++) {
+            if (members[i] > 0) return i + 1;
+        }
+        return maxPriority;
     }
 
     public void release() {
-        locker.lock();
-        for (int i = 0; i < max_priority; i++) {
-            synchronized (locks[i]) {
-                if (members[i] > 0) {
-                    locks[i].notifyAll();
-                    break;
-                }
-            }
+        synchronized (locks) {
+            locks.notifyAll();
+            busy = false;
         }
-        busy = false;
-        locker.release();
     }
 }
