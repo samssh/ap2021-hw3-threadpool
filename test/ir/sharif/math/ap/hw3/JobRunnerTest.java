@@ -139,7 +139,7 @@ public class JobRunnerTest {
         job1 = 0 to 200, 200 to 700
         job2 = 0 to 700
         job3 = 700 to 900
-        job4 = 900 to 1000
+        job4 = 900 to 1300
        */
         long startTime = System.currentTimeMillis();
         jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3, job4), 2);
@@ -149,7 +149,12 @@ public class JobRunnerTest {
         assertEquals(1, list.size());
         assertEquals(1, list.get(0).intValue());
         assertTime(startTime, endTime, RUN2_SLEEP + 2 * TIME_SAFE_MARGIN);
-        sleep(RUN5_SLEEP);
+        sleep(RUN1_SLEEP);
+        //350
+        assertEquals(2, list.size());
+        assertEquals(2, list.get(1).intValue());
+        sleep(RUN4_SLEEP);
+        //750
         assertEquals(2, list.size());
         assertEquals(2, list.get(1).intValue());
         sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
@@ -160,6 +165,105 @@ public class JobRunnerTest {
         // 1400
         assertEquals(4, list.size());
         assertEquals(4, list.get(3).intValue());
+    }
+
+    @Test
+//    @Repeat(20)
+    public void checkFreeze2() { // check this
+        Job job1 = new Job(() -> run2(RUN2_SLEEP, RUN4_SLEEP, 1), "a");
+        Job job2 = new Job(() -> run2(RUN1_SLEEP, RUN3_SLEEP, 2), "b");
+        Job job3 = new Job(() -> run2(RUN2_SLEEP, 0, 3), "c");
+        /*
+        job1 = 0 to 200, 400 to 800
+        job2 = 0 to 100, 100 to 400
+        job3 = 800 to 1000
+       */
+        long startTime = System.currentTimeMillis();
+        jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3), 2);
+        sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
+        long endTime = System.currentTimeMillis();
+        assertEquals(1, list.size());
+        assertEquals(2, list.get(0).intValue());
+        assertTime(startTime, endTime, RUN1_SLEEP + 2 * TIME_SAFE_MARGIN);
+        sleep(RUN1_SLEEP);
+        assertEquals(2, list.size());
+        assertEquals(2, list.get(0).intValue());
+        assertEquals(1, list.get(1).intValue());
+        sleep(RUN3_SLEEP);
+        assertEquals(2, list.size());
+        assertEquals(1, list.get(1).intValue());
+        sleep(RUN3_SLEEP);
+        assertEquals(2, list.size());
+        assertEquals(2, list.get(0).intValue());
+        assertEquals(1, list.get(1).intValue());
+        sleep(RUN2_SLEEP);
+        assertEquals(3, list.size());
+        assertEquals(3, list.get(2).intValue());
+    }
+
+    @Test
+    public void increaseThreadNumber() { // check this
+        Job job1 = new Job(() -> run2(RUN2_SLEEP, RUN3_SLEEP, 1), "a");
+        Job job2 = new Job(() -> run2(RUN5_SLEEP, 0, 2), "b");
+        Job job3 = new Job(() -> run2(RUN3_SLEEP, 0, 3), "c");
+        /*
+        job1 = 0 to 200, 200 to 500
+        then in t = 350, increase thread numbers to 2
+        job2 = 500 to 1000
+        job3 = 500 to 800
+       */
+        jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3), 1);
+        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
+        // 250
+        assertEquals(1, list.size());
+        assertEquals(1, list.get(0).intValue());
+        sleep(RUN1_SLEEP);
+        // 350
+        jobRunner.setThreadNumbers(2);
+        // 500
+        sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
+        // 650
+        assertEquals(1, list.size());
+        sleep(RUN2_SLEEP);
+        // 850
+        assertEquals(2, list.size());
+        assertEquals(3, list.get(1).intValue());
+        sleep(RUN2_SLEEP);
+        // 1050
+        assertEquals(3, list.size());
+        assertEquals(2, list.get(2).intValue());
+    }
+
+
+    @Test
+    public void decreaseThreadNumber() {
+        Job job1 = new Job(() -> run1(RUN4_SLEEP, 0), "g");
+        Job job2 = new Job(() -> run1(RUN4_SLEEP, 0), "g");
+        Job job3 = new Job(() -> run1(RUN2_SLEEP, RUN4_SLEEP), "g");
+        Job job4 = new Job(() -> run2(RUN3_SLEEP, 0, 4), "g");
+        Job job5 = new Job(() -> run2(RUN2_SLEEP, 0, 5), "g");
+        Job job6 = new Job(() -> run2(RUN2_SLEEP, 0, 6), "g");
+        long startTime = System.currentTimeMillis();
+        jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3, job4, job5, job6), 3);
+        sleep(RUN4_SLEEP + TIME_SAFE_MARGIN);// 450
+        long endTime = System.currentTimeMillis();
+        assertTime(startTime, endTime, RUN4_SLEEP + 2 * TIME_SAFE_MARGIN);
+        assertEquals(3, map.size());
+        startTime = System.currentTimeMillis();
+        jobRunner.setThreadNumbers(1); // 600
+        endTime = System.currentTimeMillis();
+        System.out.println(endTime - startTime);
+        assertTime(startTime, endTime, RUN2_SLEEP + TIME_SAFE_MARGIN);
+        assertTime2(startTime, endTime, RUN1_SLEEP);
+        sleep(RUN3_SLEEP); // 900
+        assertEquals(1, list.size());
+        assertEquals(4, list.get(0).intValue());
+        sleep(RUN2_SLEEP); // 1100
+        assertEquals(2, list.size());
+        assertEquals(5, list.get(1).intValue());
+        sleep(RUN2_SLEEP); // 1300
+        assertEquals(3, list.size());
+        assertEquals(6, list.get(2).intValue());
     }
 
     private long run1(long sleep, long returnSleep) {
