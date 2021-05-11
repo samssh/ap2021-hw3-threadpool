@@ -4,16 +4,15 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Job {
-    private final Runnable runnable;
+    private final NewRunnable runnable;
     private final List<String> resources;
 
-
-    public Job(Runnable runnable, String... resources) {
+    public Job(NewRunnable runnable, String... resources) {
         this.runnable = runnable;
         this.resources = Arrays.asList(resources);
     }
 
-    public Runnable getRunnable() {
+    public NewRunnable getRunnable() {
         return runnable;
     }
 
