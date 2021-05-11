@@ -26,7 +26,6 @@ public class JobRunnerTest {
     private List<Integer> list;
     private JobRunner jobRunner;
     private Map<String, Integer> resources;
-    private long startTime;
 
     @Before
     public void setUp() throws Exception {
@@ -40,16 +39,10 @@ public class JobRunnerTest {
         resources.put("e", 2);
         resources.put("f", 3);
         resources.put("g", 3);
-        startTime = System.currentTimeMillis();
     }
 
-//    @After
-//    public void tearDown() throws Exception {
-//        System.gc();
-//    }
-
     @Test
-//    @Repeat(20)
+    @Repeat(10)
     public void checkResources1() {
         Job job1 = new Job(() -> run1(RUN2_SLEEP, 0), "g");
         Job job2 = new Job(() -> run1(RUN2_SLEEP, 0), "g");
@@ -75,7 +68,7 @@ public class JobRunnerTest {
     }
 
     @Test
-//    @Repeat(20)
+    @Repeat(10)
     public void checkResources2() {
         Job job1 = new Job(() -> run1(RUN5_SLEEP, 0), "a", "b", "c", "d", "e", "f", "g");
         Job job2 = new Job(() -> run1(RUN2_SLEEP, 0), "d", "e", "f", "g");
@@ -95,7 +88,7 @@ public class JobRunnerTest {
     }
 
     @Test
-//    @Repeat(20)
+    @Repeat(10)
     public void checkResources3() { // 3 < 1 < 4 < 2 < 5
         Job job1 = new Job(() -> run1(RUN2_SLEEP, 0), "a");
         Job job2 = new Job(() -> run1(RUN4_SLEEP, 0), "a");
@@ -122,7 +115,7 @@ public class JobRunnerTest {
     }
 
     @Test
-//    @Repeat(20)
+    @Repeat(10)
     public void checkFreeze1() { // check this
         Job job1 = new Job(() -> run2(RUN2_SLEEP, RUN5_SLEEP, 1), "g");
         Job job2 = new Job(() -> run2(RUN3_SLEEP, 0, 2), "a", "g");
@@ -161,7 +154,7 @@ public class JobRunnerTest {
     }
 
     @Test
-//    @Repeat(20)
+    @Repeat(10)
     public void checkFreeze2() { // check this
         Job job1 = new Job(() -> run2(RUN2_SLEEP, RUN4_SLEEP, 1), "a");
         Job job2 = new Job(() -> run2(RUN1_SLEEP, RUN3_SLEEP, 2), "b");
@@ -195,6 +188,7 @@ public class JobRunnerTest {
     }
 
     @Test
+    @Repeat(10)
     public void increaseThreadNumber() { // check this
         Job job1 = new Job(() -> run2(RUN2_SLEEP, RUN3_SLEEP, 1), "a");
         Job job2 = new Job(() -> run2(RUN5_SLEEP, 0, 2), "b");
@@ -228,6 +222,7 @@ public class JobRunnerTest {
     }
 
     @Test
+    @Repeat(10)
     public void decreaseThreadNumber() {
         Job job1 = new Job(() -> run1(RUN4_SLEEP, 0), "g");
         Job job2 = new Job(() -> run1(RUN4_SLEEP, 0), "g");
@@ -273,21 +268,16 @@ public class JobRunnerTest {
     }
 
     private long run1(long sleep, long returnSleep) {
-//        System.out.println((System.currentTimeMillis() - startTime) + " job 123" + " start");
         sleep(sleep);
         map.put(new Object(), new Object());
-//        System.out.println((System.currentTimeMillis() - startTime) + " job 123" + " end");
         return returnSleep;
     }
 
     private long run2(long sleep, long returnSleep, int id) {
-//        System.out.println((System.currentTimeMillis() - startTime) + " job " + id + " start");
         sleep(sleep);
         synchronized (list) {
-
             list.add(id);
         }
-//        System.out.println((System.currentTimeMillis() - startTime) + " job " + id + " end");
         return returnSleep;
     }
 

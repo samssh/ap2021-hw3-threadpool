@@ -59,16 +59,16 @@ public class JobRunner {
     private void doJob(Job job) {
         long sleep = job.getRunnable().run();
         locker.lock(2);
-        runningJobs = runningJobs - 1;
-        job.getResources().forEach(s -> resources.put(s, resources.get(s) + 1));
-        synchronized (lock) {
-            lock.notifyAll();
-        }
         if (sleep > 0) {
             try {
                 Thread.sleep(sleep);
             } catch (InterruptedException ignore) {
             }
+        }
+        runningJobs = runningJobs - 1;
+        job.getResources().forEach(s -> resources.put(s, resources.get(s) + 1));
+        synchronized (lock) {
+            lock.notifyAll();
         }
         locker.release();
     }
