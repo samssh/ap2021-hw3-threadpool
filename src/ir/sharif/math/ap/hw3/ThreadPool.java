@@ -104,7 +104,7 @@ public class ThreadPool {
                             e.printStackTrace(); // unreachable state
                         }
                         if (!isActive()) {
-                            break;
+                            return;
                         }
                     }
                     task = tasks.remove(tasks.size() - 1);

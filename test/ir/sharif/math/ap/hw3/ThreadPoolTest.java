@@ -1,6 +1,7 @@
 package ir.sharif.math.ap.hw3;
 
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -26,6 +27,12 @@ public class ThreadPoolTest {
         this.threadPool = new ThreadPool(3);
         this.map = new ConcurrentHashMap<>();
         this.testThread = Thread.currentThread();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+//        threadPool.setThreadNumbers(0);
+//        System.gc();
     }
 
     @Test
@@ -92,8 +99,9 @@ public class ThreadPoolTest {
         for (int i = 0; i < 6; i++) {
             threadPool.invokeLater(this::run1);
         }
+        sleep(TIME_SAFE_MARGIN);
         threadPool.setThreadNumbers(1);
-        sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
+        sleep(RUN1_SLEEP);
         long endTime = System.currentTimeMillis();
         assertTime(startTime, endTime, RUN1_SLEEP + 2 * TIME_SAFE_MARGIN);
         assertEquals(3, map.size());
