@@ -36,7 +36,9 @@ public class JobRunner {
                 if (job.getResources().stream().allMatch(s -> resources.get(s) > 0)
                         && runningJobs < threadPool.getThreadNumbers() - 1) {
                     iterator.remove();
-                    runJob(job);
+                    runningJobs = runningJobs + 1;
+                    job.getResources().forEach(s -> resources.put(s, resources.get(s) - 1));
+                    threadPool.invokeLater(() -> doJob(job));
                 }
                 locker.release();
             }
@@ -48,12 +50,6 @@ public class JobRunner {
                 }
             }
         }
-    }
-
-    private void runJob(Job job) {
-        runningJobs = runningJobs + 1;
-        job.getResources().forEach(s -> resources.put(s, resources.get(s) - 1));
-        threadPool.invokeLater(() -> doJob(job));
     }
 
     private void doJob(Job job) {
