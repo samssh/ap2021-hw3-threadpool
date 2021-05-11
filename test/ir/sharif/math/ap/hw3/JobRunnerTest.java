@@ -159,29 +159,35 @@ public class JobRunnerTest {
         Job job2 = new Job(() -> run2(RUN2_SLEEP, RUN4_SLEEP, 2), "b");
         Job job3 = new Job(() -> run2(RUN2_SLEEP, 0, 3), "c");
         /*
-        job1 = 0 to 200, 400 to 800
-        job2 = 0 to 100, 100 to 400
-        job3 = 800 to 1000
+        job1 = 0 to 400, 600 to 1000
+        job2 = 0 to 200, 200 to 600
+        job3 = 1000 to 1200
        */
         long startTime = System.currentTimeMillis();
         jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3), 2);
-        sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
+        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
+        // 250
         long endTime = System.currentTimeMillis();
         assertEquals(1, list.size());
         assertEquals(2, list.get(0).intValue());
-        assertTime(startTime, endTime, RUN1_SLEEP + 2 * TIME_SAFE_MARGIN);
-        sleep(RUN1_SLEEP);
+        assertTime(startTime, endTime, RUN2_SLEEP + 2 * TIME_SAFE_MARGIN);
+        sleep(RUN2_SLEEP);
+        // 450
         assertEquals(2, list.size());
         assertEquals(2, list.get(0).intValue());
         assertEquals(1, list.get(1).intValue());
         sleep(RUN3_SLEEP);
-        assertEquals(2, list.size());
-        assertEquals(1, list.get(1).intValue());
-        sleep(RUN3_SLEEP);
+        // 750
         assertEquals(2, list.size());
         assertEquals(2, list.get(0).intValue());
         assertEquals(1, list.get(1).intValue());
         sleep(RUN2_SLEEP);
+        // 950
+        assertEquals(2, list.size());
+        assertEquals(2, list.get(0).intValue());
+        assertEquals(1, list.get(1).intValue());
+        sleep(RUN3_SLEEP);
+        // 1250
         assertEquals(3, list.size());
         assertEquals(3, list.get(2).intValue());
     }
