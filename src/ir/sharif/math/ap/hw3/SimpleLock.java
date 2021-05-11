@@ -2,7 +2,7 @@ package ir.sharif.math.ap.hw3;
 
 public class SimpleLock {
     private final Object lock;
-    private volatile boolean busy = false;
+    private boolean busy = false;
 
     public SimpleLock() {
         lock = new Object();
@@ -16,8 +16,8 @@ public class SimpleLock {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                busy = true;
             }
+            busy = true;
         }
     }
 

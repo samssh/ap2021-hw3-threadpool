@@ -1,7 +1,7 @@
 package ir.sharif.math.ap.hw3;
 
 public class PriorityLocker {
-    private volatile boolean busy;
+    private boolean busy;
     private final SimpleLock locker;
     private final Object[] locks;
     private final int[] members;
