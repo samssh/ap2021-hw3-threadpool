@@ -1,13 +1,11 @@
 package ir.sharif.math.ap.hw3;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -28,11 +26,12 @@ public class JobRunnerTest {
     private List<Integer> list;
     private JobRunner jobRunner;
     private Map<String, Integer> resources;
+    private long startTime;
 
     @Before
     public void setUp() throws Exception {
         map = new ConcurrentHashMap<>();
-        list = new CopyOnWriteArrayList<>();
+        list = new LinkedList<>();
         resources = new HashMap<>();
         resources.put("a", 1);
         resources.put("b", 1);
@@ -41,44 +40,38 @@ public class JobRunnerTest {
         resources.put("e", 2);
         resources.put("f", 3);
         resources.put("g", 3);
+        startTime = System.currentTimeMillis();
     }
 
-    @After
-    public void tearDown() throws Exception {
-        System.gc();
-    }
+//    @After
+//    public void tearDown() throws Exception {
+//        System.gc();
+//    }
 
     @Test
 //    @Repeat(20)
     public void checkResources1() {
-        try {
-            Job job1 = new Job(() -> run1(RUN2_SLEEP, 0), "g");
-            Job job2 = new Job(() -> run1(RUN2_SLEEP, 0), "g");
-            Job job3 = new Job(() -> run1(RUN2_SLEEP, 0), "g");
-            Job job4 = new Job(() -> run2(RUN2_SLEEP, 0, 4), "g");
-            Job job5 = new Job(() -> run2(RUN2_SLEEP, 0, 5), "g");
-            Job job6 = new Job(() -> run2(RUN2_SLEEP, 0, 6), "g");
-            long startTime = System.currentTimeMillis();
-            jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3), 4);
-            jobRunner = new JobRunner(resources, Arrays.asList(job4, job5, job6), 2);
-            sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
-            long endTime = System.currentTimeMillis();
-            assertTime(startTime, endTime, RUN2_SLEEP + 2 * TIME_SAFE_MARGIN);
-            assertEquals(3, map.size());
-            assertEquals(2, list.size());
-            Collections.sort(list);
-            assertEquals(4, list.get(0).intValue());
-            assertEquals(5, list.get(1).intValue());
-            sleep(RUN2_SLEEP);
-            assertEquals(3, list.size());
-            assertEquals(6, list.get(2).intValue());
-        } catch (AssertionError assertionError) {
-            Map<Thread, StackTraceElement[]> mmm = Thread.getAllStackTraces();
-            for (Thread thread : mmm.keySet()) {
-                System.out.println(thread + ":" + Arrays.toString(mmm.get(thread)));
-            }
-            throw assertionError;
-        }
+        Job job1 = new Job(() -> run1(RUN2_SLEEP, 0), "g");
+        Job job2 = new Job(() -> run1(RUN2_SLEEP, 0), "g");
+        Job job3 = new Job(() -> run1(RUN2_SLEEP, 0), "g");
+        Job job4 = new Job(() -> run2(RUN2_SLEEP, 0, 4), "g");
+        Job job5 = new Job(() -> run2(RUN2_SLEEP, 0, 5), "g");
+        Job job6 = new Job(() -> run2(RUN2_SLEEP, 0, 6), "g");
+        long startTime = System.currentTimeMillis();
+        jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3), 4);
+        jobRunner = new JobRunner(resources, Arrays.asList(job4, job5, job6), 2);
+        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
+        long endTime = System.currentTimeMillis();
+        assertTime(startTime, endTime, RUN2_SLEEP + 2 * TIME_SAFE_MARGIN);
+        assertEquals(3, map.size());
+        assertEquals(2, list.size());
+        Collections.sort(list);
+        assertEquals(4, list.get(0).intValue());
+        assertEquals(5, list.get(1).intValue());
+        sleep(RUN2_SLEEP);
+        assertEquals(3, list.size());
+        assertEquals(6, list.get(2).intValue());
+
     }
 
     @Test
@@ -234,47 +227,67 @@ public class JobRunnerTest {
         assertEquals(2, list.get(2).intValue());
     }
 
-
     @Test
     public void decreaseThreadNumber() {
         Job job1 = new Job(() -> run1(RUN4_SLEEP, 0), "g");
         Job job2 = new Job(() -> run1(RUN4_SLEEP, 0), "g");
         Job job3 = new Job(() -> run1(RUN2_SLEEP, RUN4_SLEEP), "g");
-        Job job4 = new Job(() -> run2(RUN3_SLEEP, 0, 4), "g");
-        Job job5 = new Job(() -> run2(RUN2_SLEEP, 0, 5), "g");
-        Job job6 = new Job(() -> run2(RUN2_SLEEP, 0, 6), "g");
+        Job job4 = new Job(() -> run2(RUN3_SLEEP, 0, 4), "f", "g");
+        Job job5 = new Job(() -> run2(RUN2_SLEEP, 0, 5), "f", "g");
+        Job job6 = new Job(() -> run2(RUN2_SLEEP, 0, 6), "f", "g");
+        /*
+         * job1: 0 400
+         * job2 : 0 400
+         * job3 : 0 200 , freeze 200 (set thread number to 1) 600
+         * job4: 600 900
+         * job5: 900 1100
+         * job6: 1100 1300
+         * */
         long startTime = System.currentTimeMillis();
         jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3, job4, job5, job6), 3);
         sleep(RUN4_SLEEP + TIME_SAFE_MARGIN);// 450
         long endTime = System.currentTimeMillis();
         assertTime(startTime, endTime, RUN4_SLEEP + 2 * TIME_SAFE_MARGIN);
         assertEquals(3, map.size());
+
+
         startTime = System.currentTimeMillis();
         jobRunner.setThreadNumbers(1); // 600
         endTime = System.currentTimeMillis();
-        System.out.println(endTime - startTime);
         assertTime(startTime, endTime, RUN2_SLEEP + TIME_SAFE_MARGIN);
         assertTime2(startTime, endTime, RUN1_SLEEP);
-        sleep(RUN3_SLEEP); // 900
+
+        sleep(RUN3_SLEEP + 3 * TIME_SAFE_MARGIN); // 1000
         assertEquals(1, list.size());
         assertEquals(4, list.get(0).intValue());
+
+
         sleep(RUN2_SLEEP); // 1100
         assertEquals(2, list.size());
         assertEquals(5, list.get(1).intValue());
+
+
         sleep(RUN2_SLEEP); // 1300
         assertEquals(3, list.size());
         assertEquals(6, list.get(2).intValue());
     }
 
     private long run1(long sleep, long returnSleep) {
+//        System.out.println((System.currentTimeMillis() - startTime) + " job 123" + " start");
         sleep(sleep);
         map.put(new Object(), new Object());
+//        System.out.println((System.currentTimeMillis() - startTime) + " job 123" + " end");
         return returnSleep;
     }
 
     private long run2(long sleep, long returnSleep, int id) {
+//        System.out.println((System.currentTimeMillis() - startTime) + " job " + id + " start");
         sleep(sleep);
-        list.add(id);
+        synchronized (list) {
+
+            list.add(id);
+        }
+//        System.out.println((System.currentTimeMillis() - startTime) + " job " + id + " end");
         return returnSleep;
     }
 
