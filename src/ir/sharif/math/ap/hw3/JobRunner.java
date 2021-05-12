@@ -1,10 +1,6 @@
 package ir.sharif.math.ap.hw3;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 
 public class JobRunner {
     private final Map<String, Integer> resources;
@@ -16,7 +12,7 @@ public class JobRunner {
 
 
     public JobRunner(Map<String, Integer> resources, List<Job> jobs, int initialThreadNumber) {
-        this.resources = new ConcurrentHashMap<>(resources);
+        this.resources = new HashMap<>(resources);
         this.jobsLeft = new LinkedList<>(jobs);
         this.locker = new PriorityLocker(3);
         this.lock = new Object();
