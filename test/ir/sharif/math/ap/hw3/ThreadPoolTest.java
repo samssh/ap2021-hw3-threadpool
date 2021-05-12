@@ -1,5 +1,6 @@
 package ir.sharif.math.ap.hw3;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,6 +31,13 @@ public class ThreadPoolTest {
         this.testThread = Thread.currentThread();
         this.threadSet = new CopyOnWriteArraySet<>();
         new Thread(this::getLocks).start();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        threadPool.setThreadNumbers(0);
+        sleep(100);
+        System.gc();
     }
 
     @Test
