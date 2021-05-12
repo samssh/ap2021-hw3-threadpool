@@ -7,6 +7,7 @@ import org.junit.Test;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -20,16 +21,17 @@ public class JobRunnerTest {
     private static final long RUN3_SLEEP = 300;
     private static final long RUN4_SLEEP = 400;
     private static final long RUN5_SLEEP = 500;
-    private static final long RUN0_SLEEP = 10;
     private Map<Object, Object> map;
     private List<Integer> list;
     private JobRunner jobRunner;
     private Map<String, Integer> resources;
+    private Set<Thread> threadSet;
 
     @Before
     public void setUp() throws Exception {
         map = new ConcurrentHashMap<>();
         list = new CopyOnWriteArrayList<>();
+        threadSet = new CopyOnWriteArraySet<>();
         resources = new HashMap<>();
         resources.put("a", 1);
         resources.put("b", 1);
@@ -220,9 +222,6 @@ public class JobRunnerTest {
         sleep(n * RUN1_SLEEP); // 3250
         sleep(RUN4_SLEEP);
         assertEquals(n, map.size());
-//        while (n == map.size()) {
-//            sleep(RUN3_SLEEP);
-//        }
     }
 
     @Test
@@ -333,6 +332,37 @@ public class JobRunnerTest {
         assertEquals(50, list.size());
     }
 
+    @Test
+    @Repeat(10)
+    public void threadReusability() {
+        Job job1 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, 0));
+        Job job2 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, 0));
+        Job job3 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, RUN2_SLEEP));
+        Job job4 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, 0));
+        Job job5 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, 0));
+        Job job6 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, 0));
+        Job job7 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, RUN2_SLEEP));
+        Job job8 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, 0));
+        Job job9 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, RUN2_SLEEP));
+        long startTime = System.currentTimeMillis();
+        jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3, job4, job5, job6, job7, job8, job9), 3);
+        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
+        long endTime = System.currentTimeMillis();
+        assertEquals(3, map.size());
+        assertEquals(3, threadSet.size());
+        assertTime(startTime, endTime, RUN2_SLEEP + 2 * TIME_SAFE_MARGIN);
+
+        jobRunner.setThreadNumbers(4);
+        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
+        assertEquals(7, map.size());
+        assertEquals(4, threadSet.size());
+
+        jobRunner.setThreadNumbers(2);
+        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
+        assertEquals(9, map.size());
+        assertEquals(4, threadSet.size());
+    }
+
     private long run1(Map<Object, Object> map, long sleep, long returnSleep) {
         sleep(sleep);
         map.put(new Object(), new Object());
@@ -342,6 +372,13 @@ public class JobRunnerTest {
     private long run2(List<Integer> list, long sleep, long returnSleep, int id) {
         sleep(sleep);
         list.add(id);
+        return returnSleep;
+    }
+
+    private long run5(Map<Object, Object> map, Set<Thread> threadSet, long sleep, long returnSleep) {
+        sleep(sleep);
+        map.put(new Object(), new Object());
+        threadSet.add(Thread.currentThread());
         return returnSleep;
     }
 
