@@ -24,6 +24,9 @@ public class JobRunner {
     public void setThreadNumbers(int threadNumbers) {
         locker.lock(1);
         threadPool.setThreadNumbers(threadNumbers);
+        synchronized (lock) {
+            lock.notifyAll();
+        }
         locker.release();
     }
 
