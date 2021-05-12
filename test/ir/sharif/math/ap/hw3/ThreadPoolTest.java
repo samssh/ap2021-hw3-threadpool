@@ -1,13 +1,13 @@
 package ir.sharif.math.ap.hw3;
 
-
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import static org.junit.Assert.*;
 
@@ -21,18 +21,15 @@ public class ThreadPoolTest {
     private Map<Object, Object> map;
     private Thread testThread;
     private Throwable throwable;
+    private Set<Thread> threadSet;
 
     @Before
     public void setUp() {
         this.threadPool = new ThreadPool(3);
         this.map = new ConcurrentHashMap<>();
         this.testThread = Thread.currentThread();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-//        threadPool.setThreadNumbers(0);
-//        System.gc();
+        this.threadSet = new CopyOnWriteArraySet<>();
+        new Thread(this::getLocks).start();
     }
 
     @Test
@@ -128,6 +125,26 @@ public class ThreadPoolTest {
     }
 
     @Test
+    public void threadSafeTest2() {
+        long startTime = System.currentTimeMillis();
+        threadPool.setThreadNumbers(10);
+        for (int i = 0; i < 10; i++) {
+            threadPool.invokeLater(this::run4);
+        }
+        sleep(RUN1_SLEEP + RUN3_SLEEP + 3 * TIME_SAFE_MARGIN);
+        long endTime = System.currentTimeMillis();
+        assertTime(startTime, endTime, RUN1_SLEEP + RUN3_SLEEP + 4 * TIME_SAFE_MARGIN);
+        assertEquals(10, map.size());
+        assertEquals(20, threadPool.getThreadNumbers());
+        for (int i = 0; i < 20; i++) {
+            threadPool.invokeLater(this::run1);
+        }
+        sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
+        assertEquals(30, map.size());
+        assertNull(throwable);
+    }
+
+    @Test
     public void interruptTest() {
         threadPool.invokeLater(this::run2);
         assertDoesNotThrow(() -> threadPool.invokeAndWaitUninterruptible(this::run1));
@@ -149,6 +166,42 @@ public class ThreadPoolTest {
         assertSame(invocationTargetException.getTargetException(), runtimeException);
     }
 
+    @Test
+    public void threadReusability() {
+        long startTime = System.currentTimeMillis();
+        threadPool.setThreadNumbers(3);
+        for (int i = 0; i < 3; i++) {
+            threadPool.invokeLater(this::run5);
+        }
+        sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
+        long endTime = System.currentTimeMillis();
+        assertEquals(3, map.size());
+        assertEquals(3, threadSet.size());
+        assertTime(startTime, endTime, RUN1_SLEEP + 2 * TIME_SAFE_MARGIN);
+
+        startTime = System.currentTimeMillis();
+        threadPool.setThreadNumbers(4);
+        for (int i = 0; i < 4; i++) {
+            threadPool.invokeLater(this::run5);
+        }
+        sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
+        endTime = System.currentTimeMillis();
+        assertEquals(7, map.size());
+        assertEquals(4, threadSet.size());
+        assertTime(startTime, endTime, RUN1_SLEEP + 2 * TIME_SAFE_MARGIN);
+
+        startTime = System.currentTimeMillis();
+        threadPool.setThreadNumbers(2);
+        for (int i = 0; i < 2; i++) {
+            threadPool.invokeLater(this::run5);
+        }
+        sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
+        endTime = System.currentTimeMillis();
+        assertEquals(9, map.size());
+        assertEquals(4, threadSet.size());
+        assertTime(startTime, endTime, RUN1_SLEEP + 2 * TIME_SAFE_MARGIN);
+    }
+
     private void run1() {
         sleep(RUN1_SLEEP);
         map.put(new Object(), new Object());
@@ -162,6 +215,20 @@ public class ThreadPoolTest {
     private void run3() {
         sleep(RUN3_SLEEP);
         assertDoesNotThrow(() -> threadPool.invokeLater(this::run1));
+    }
+
+    private void run4() {
+        sleep(RUN3_SLEEP);
+        assertDoesNotThrow(() -> threadPool.invokeLater(this::run1));
+        synchronized (map) {
+            assertDoesNotThrow(() -> threadPool.setThreadNumbers(threadPool.getThreadNumbers() + 1));
+        }
+    }
+
+    private void run5() {
+        sleep(RUN1_SLEEP);
+        map.put(new Object(), new Object());
+        threadSet.add(Thread.currentThread());
     }
 
     private void assertDoesNotThrow(ThrowingRunnable runnable) {
@@ -190,11 +257,23 @@ public class ThreadPoolTest {
         assertTrue(end - start <= expectedDuration);
     }
 
-    void sleep(long l) {
+    private void sleep(long l) {
         try {
             Thread.sleep(l);
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void getLocks() {
+        synchronized (threadPool) {
+            synchronized (threadPool.getClass()) {
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
