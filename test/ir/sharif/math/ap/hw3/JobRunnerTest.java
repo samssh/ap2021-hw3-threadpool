@@ -310,6 +310,29 @@ public class JobRunnerTest {
         assertEquals(6, list.get(2).intValue());
     }
 
+    @Test
+    @Repeat(10)
+    public void sync1() {
+        Job[] jobs = new Job[50];
+        for (int i = 0; i < 50; i++) {
+            jobs[i] = new Job(() -> run2(list, RUN3_SLEEP, 0, 1), "sadat");
+        }
+        long startTime = System.currentTimeMillis();
+        jobRunner = new JobRunner(resources, Arrays.asList(jobs), 10);
+        sleep(RUN3_SLEEP + TIME_SAFE_MARGIN);
+        // 350
+        long endTime = System.currentTimeMillis();
+        assertTime(startTime, endTime, RUN3_SLEEP + 3 * TIME_SAFE_MARGIN);
+        assertEquals(10, list.size());
+        jobRunner.setThreadNumbers(30);
+        sleep(RUN4_SLEEP);
+        // 750
+        assertEquals(30, list.size());
+        sleep(RUN3_SLEEP);
+        // 1050
+        assertEquals(50, list.size());
+    }
+
     private long run1(Map<Object, Object> map, long sleep, long returnSleep) {
         sleep(sleep);
         map.put(new Object(), new Object());
