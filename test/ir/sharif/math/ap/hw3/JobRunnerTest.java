@@ -62,8 +62,6 @@ public class JobRunnerTest {
         System.gc();
         for (Thread t : getAllThreads()) {
             if (t != null && !threadSet2.contains(t)) {
-                System.out.println(t + "" + t.getState());
-                System.out.println(Arrays.toString(Thread.getAllStackTraces().get(t)));
                 fail = true;
                 t.stop();
             }
