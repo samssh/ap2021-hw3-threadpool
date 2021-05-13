@@ -53,8 +53,6 @@ public class ThreadPoolTest {
         System.gc();
         for (Thread t : getAllThreads()) {
             if (t != null && !threadSet2.contains(t)) {
-                System.out.println(t);
-                System.out.println(t.getState());
                 fail = true;
                 t.stop();
             }
