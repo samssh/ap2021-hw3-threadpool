@@ -1,3 +1,4 @@
+
 package ir.sharif.math.ap.hw3;
 
 import org.junit.rules.TestRule;
@@ -5,6 +6,7 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 public class RepeatRule implements TestRule {
+    private volatile String name;
 
     private static class RepeatStatement extends Statement {
         private final Statement statement;
@@ -26,6 +28,7 @@ public class RepeatRule implements TestRule {
 
     @Override
     public Statement apply(Statement statement, Description description) {
+        this.name = description.getMethodName();
         Statement result = statement;
         Repeat repeat = description.getAnnotation(Repeat.class);
         if (repeat != null) {
@@ -33,5 +36,9 @@ public class RepeatRule implements TestRule {
             result = new RepeatStatement(statement, times);
         }
         return result;
+    }
+
+    public String getMethodName() {
+        return this.name;
     }
 }
