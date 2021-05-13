@@ -250,12 +250,9 @@ public class JobRunnerTest {
         sleep(n * RUN1_SLEEP); // 3250
         sleep(RUN4_SLEEP);
         assertEquals(n, map.size());
-        startTime = System.currentTimeMillis();
         while (map.size() == n) {
             sleep(RUN1_SLEEP);
         }
-        endTime = System.currentTimeMillis();
-        System.out.println(endTime - startTime);
         assertEquals(n + 1, map.size());
     }
 
@@ -282,7 +279,7 @@ public class JobRunnerTest {
         jobRunner.setThreadNumbers(2);
         long endTime = System.currentTimeMillis();
         assertTime(startTime, endTime, RUN2_SLEEP + TIME_SAFE_MARGIN);
-        assertTime2(startTime, endTime, RUN1_SLEEP);
+        assertTime2(startTime, endTime);
 
         // 500
         sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
@@ -302,7 +299,7 @@ public class JobRunnerTest {
     @Repeat(10)
     public void decreaseThreadNumber() {
         Job job1 = new Job(() -> run1(RUN4_SLEEP, 0), "g");
-        Job job2 = new Job(() -> run1(RUN4_SLEEP, 0), new String("g"));
+        Job job2 = new Job(() -> run1(RUN4_SLEEP, 0), "g");
         Job job3 = new Job(() -> run1(RUN2_SLEEP, RUN4_SLEEP), "g");
         Job job4 = new Job(() -> run2(RUN3_SLEEP, 0, 4), "f", "g");
         Job job5 = new Job(() -> run2(RUN2_SLEEP, 0, 5), "f", "g");
@@ -327,7 +324,7 @@ public class JobRunnerTest {
         jobRunner.setThreadNumbers(1); // 600
         endTime = System.currentTimeMillis();
         assertTime(startTime, endTime, RUN2_SLEEP + TIME_SAFE_MARGIN);
-        assertTime2(startTime, endTime, RUN1_SLEEP);
+        assertTime2(startTime, endTime);
 
         sleep(RUN3_SLEEP + 3 * TIME_SAFE_MARGIN); // 1000
         assertEquals(1, list.size());
@@ -370,30 +367,30 @@ public class JobRunnerTest {
     @Test
     @Repeat(10)
     public void threadReusability() {
-        Job job1 = new Job(() -> run5(RUN2_SLEEP, 0));
-        Job job2 = new Job(() -> run5(RUN2_SLEEP, 0));
-        Job job3 = new Job(() -> run5(RUN2_SLEEP, RUN2_SLEEP));
-        Job job4 = new Job(() -> run5(RUN2_SLEEP, 0));
-        Job job5 = new Job(() -> run5(RUN2_SLEEP, 0));
-        Job job6 = new Job(() -> run5(RUN2_SLEEP, 0));
-        Job job7 = new Job(() -> run5(RUN2_SLEEP, RUN2_SLEEP));
-        Job job8 = new Job(() -> run5(RUN2_SLEEP, 0));
-        Job job9 = new Job(() -> run5(RUN2_SLEEP, RUN2_SLEEP));
+        Job job1 = new Job(() -> run5(RUN1_SLEEP, 1));
+        Job job2 = new Job(() -> run5(RUN1_SLEEP, 2));
+        Job job3 = new Job(() -> run5(RUN1_SLEEP, 3));
+        Job job4 = new Job(() -> run5(0, 4));
+        Job job5 = new Job(() -> run5(0, 5));
+        Job job6 = new Job(() -> run5(0, 6));
+        Job job7 = new Job(() -> run5(RUN3_SLEEP, 7));
+        Job job8 = new Job(() -> run5(0, 8));
+        Job job9 = new Job(() -> run5(0, 9));
         long startTime = System.currentTimeMillis();
         jobRunner = new JobRunner(resources, Arrays.asList(job1, job2, job3, job4, job5, job6, job7, job8, job9), 3);
-        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
+        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN); // 250
         long endTime = System.currentTimeMillis();
         assertEquals(3, map.size());
         assertEquals(3, threadSet.size());
         assertTime(startTime, endTime, RUN2_SLEEP + 2 * TIME_SAFE_MARGIN);
 
-        jobRunner.setThreadNumbers(4);
-        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
+        jobRunner.setThreadNumbers(4); // 300
+        sleep(RUN2_SLEEP + 2 * RUN1_SLEEP + TIME_SAFE_MARGIN); // 750
         assertEquals(7, map.size());
         assertEquals(4, threadSet.size());
 
-        jobRunner.setThreadNumbers(2);
-        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN);
+        jobRunner.setThreadNumbers(2); // 1000
+        sleep(RUN2_SLEEP + TIME_SAFE_MARGIN); // 1250
         assertEquals(9, map.size());
         assertEquals(4, threadSet.size());
     }
@@ -410,9 +407,9 @@ public class JobRunnerTest {
         return returnSleep;
     }
 
-    private long run5(long sleep, long returnSleep) {
-        sleep(sleep);
-        map.put(new Object(), new Object());
+    private long run5(long returnSleep, int id) {
+        sleep(JobRunnerTest.RUN2_SLEEP);
+        map.put(id, new Object());
         threadSet.add(Thread.currentThread());
         return returnSleep;
     }
@@ -421,10 +418,11 @@ public class JobRunnerTest {
         assertTrue(end - start <= expectedDuration);
     }
 
-    private void assertTime2(long start, long end, long expectedDuration) {
-        assertTrue(end - start >= expectedDuration);
+    private void assertTime2(long start, long end) {
+        assertTrue(end - start >= JobRunnerTest.RUN1_SLEEP);
     }
 
+    @SuppressWarnings("SynchronizeOnNonFinalField")
     private void getLocks() {
         while (jobRunner == null) {
             sleep(10);
