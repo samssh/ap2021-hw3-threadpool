@@ -1,13 +1,11 @@
 package ir.sharif.math.ap.hw3;
 
-import junit.framework.AssertionFailedError;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +15,8 @@ import static org.junit.Assert.*;
 
 
 public class ThreadPoolTest {
+    @Rule
+    public RepeatRule repeatRule = new RepeatRule();
     private static final long TIME_SAFE_MARGIN = 50;
     private static final long RUN1_SLEEP = 200;
     private static final long RUN2_SLEEP = 100;
@@ -37,14 +37,15 @@ public class ThreadPoolTest {
         this.threadSet2 = new CopyOnWriteArraySet<>();
         this.fail = false;
         Thread.setDefaultUncaughtExceptionHandler(this::uncaughtException);
-        Collections.addAll(threadSet2, getAllThreads());
+        threadSet2.addAll(getAllThreads());
         this.threadPool = new ThreadPool(3);
         lockerThread.start();
     }
 
 
+    @SuppressWarnings("deprecation")
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         lockerThread.interrupt();
         sleep(30);
         for (Thread t : getAllThreads()) {
@@ -53,12 +54,13 @@ public class ThreadPoolTest {
             }
         }
         assertFalse(fail);
-        System.out.println(Thread.getAllStackTraces());
         sleep(30);
         System.gc();
+        System.out.println(Thread.getAllStackTraces());
     }
 
     @Test
+    @Repeat(10)
     public void invokeLater() {
         long startTime = System.currentTimeMillis();
         threadPool.invokeLater(this::run1);
@@ -70,6 +72,7 @@ public class ThreadPoolTest {
     }
 
     @Test
+    @Repeat(10)
     public void invokeAndWait() throws InterruptedException, InvocationTargetException {
         long startTime = System.currentTimeMillis();
         threadPool.invokeAndWait(this::run1);
@@ -84,6 +87,7 @@ public class ThreadPoolTest {
     }
 
     @Test
+    @Repeat(10)
     public void parallelRun() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(5);
@@ -99,6 +103,7 @@ public class ThreadPoolTest {
     }
 
     @Test
+    @Repeat(10)
     public void increaseThreadNumberTest() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(3);
@@ -116,6 +121,7 @@ public class ThreadPoolTest {
     }
 
     @Test
+    @Repeat(10)
     public void decreaseThreadNumberTest() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(3);
@@ -137,6 +143,7 @@ public class ThreadPoolTest {
     }
 
     @Test
+    @Repeat(10)
     public void threadSafeTest() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(10);
@@ -151,6 +158,7 @@ public class ThreadPoolTest {
     }
 
     @Test
+    @Repeat(10)
     public void threadSafeTest2() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(10);
@@ -171,6 +179,7 @@ public class ThreadPoolTest {
     }
 
     @Test
+    @Repeat(10)
     public void interruptTest() {
         threadPool.invokeLater(this::run2);
         assertDoesNotThrow(() -> threadPool.invokeAndWaitUninterruptible(this::run1));
@@ -182,6 +191,7 @@ public class ThreadPoolTest {
     }
 
     @Test
+    @Repeat(10)
     public void throwTest() {
         RuntimeException runtimeException = new RuntimeException();
         InvocationTargetException invocationTargetException = assertThrows(InvocationTargetException.class,
@@ -193,6 +203,7 @@ public class ThreadPoolTest {
     }
 
     @Test
+    @Repeat(10)
     public void threadReusability() {
         long startTime = System.currentTimeMillis();
         threadPool.setThreadNumbers(3);
@@ -246,9 +257,7 @@ public class ThreadPoolTest {
     private void run4() {
         sleep(RUN3_SLEEP);
         assertDoesNotThrow(() -> threadPool.invokeLater(this::run1));
-        synchronized (map) {
-            assertDoesNotThrow(() -> threadPool.setThreadNumbers(threadPool.getThreadNumbers() + 1));
-        }
+        assertDoesNotThrow(() -> threadPool.setThreadNumbers(20));
     }
 
     private void run5() {
@@ -265,6 +274,7 @@ public class ThreadPoolTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private static <T extends Throwable> T assertThrows(Class<T> tClass, ThrowingRunnable runnable) {
         try {
             runnable.run();
@@ -272,7 +282,7 @@ public class ThreadPoolTest {
             assertTrue(tClass.isInstance(t));
             return (T) t;
         }
-        throw new AssertionFailedError();
+        throw new AssertionError();
     }
 
     private void throwRun(RuntimeException throwable) {
@@ -283,6 +293,7 @@ public class ThreadPoolTest {
         assertTrue(end - start <= expectedDuration);
     }
 
+    @SuppressWarnings("BusyWait")
     private void sleep(long sleepTime) {
         long startTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - startTime < sleepTime) {
@@ -293,6 +304,7 @@ public class ThreadPoolTest {
         }
     }
 
+    @SuppressWarnings({"SynchronizeOnNonFinalField", "SynchronizationOnGetClass"})
     private void getLocks() {
         synchronized (threadPool) {
             synchronized (threadPool.getClass()) {
@@ -304,15 +316,13 @@ public class ThreadPoolTest {
         }
     }
 
-    private Thread[] getAllThreads() {
-        ThreadGroup threadGroup = testThread.getThreadGroup();
-        Thread[] threads = new Thread[threadGroup.activeCount()];
-        threadGroup.enumerate(threads);
-        return threads;
+    private Set<Thread> getAllThreads() {
+        return Thread.getAllStackTraces().keySet();
     }
 
     private void uncaughtException(Thread t, Throwable e) {
-        if (Arrays.asList(getAllThreads()).contains(t) && !threadSet2.contains(t) && e instanceof Exception) {
+        if (getAllThreads().contains(t) && !threadSet2.contains(t) && e instanceof Exception) {
+            System.err.println(repeatRule.getMethodName());
             e.printStackTrace();
             this.fail = true;
         }
