@@ -5,6 +5,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,23 +22,38 @@ public class ThreadPoolTest {
     private static final long RUN3_SLEEP = 10;
     private ThreadPool threadPool;
     private Map<Object, Object> map;
-    private Thread testThread;
+    private Thread testThread, lockerThread;
     private Throwable throwable;
-    private Set<Thread> threadSet;
+    private Set<Thread> threadSet, threadSet2;
+    private boolean fail;
 
     @Before
     public void setUp() {
-        this.threadPool = new ThreadPool(3);
         this.map = new ConcurrentHashMap<>();
         this.testThread = Thread.currentThread();
+        this.lockerThread = new Thread(this::getLocks);
         this.threadSet = new CopyOnWriteArraySet<>();
-        new Thread(this::getLocks).start();
+        this.threadSet2 = new CopyOnWriteArraySet<>();
+        this.fail = false;
+        Thread.setDefaultUncaughtExceptionHandler(this::uncaughtException);
+        Collections.addAll(threadSet2, getAllThreads());
+        this.threadPool = new ThreadPool(3);
+        lockerThread.start();
     }
+
 
     @After
     public void tearDown() throws Exception {
-        threadPool.setThreadNumbers(0);
-        sleep(100);
+        lockerThread.interrupt();
+        sleep(30);
+        for (Thread t : getAllThreads()) {
+            if (t != null && !threadSet2.contains(t)) {
+                t.stop();
+            }
+        }
+        assertFalse(fail);
+        System.out.println(Thread.getAllStackTraces());
+        sleep(30);
         System.gc();
     }
 
@@ -265,11 +282,13 @@ public class ThreadPoolTest {
         assertTrue(end - start <= expectedDuration);
     }
 
-    private void sleep(long l) {
-        try {
-            Thread.sleep(l);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    private void sleep(long sleepTime) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < sleepTime) {
+            try {
+                Thread.sleep(sleepTime);
+            } catch (InterruptedException ignore) {
+            }
         }
     }
 
@@ -278,10 +297,23 @@ public class ThreadPoolTest {
             synchronized (threadPool.getClass()) {
                 try {
                     Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                } catch (InterruptedException ignored) {
                 }
             }
+        }
+    }
+
+    private Thread[] getAllThreads() {
+        ThreadGroup threadGroup = testThread.getThreadGroup();
+        Thread[] threads = new Thread[threadGroup.activeCount()];
+        threadGroup.enumerate(threads);
+        return threads;
+    }
+
+    private void uncaughtException(Thread t, Throwable e) {
+        if (Arrays.asList(getAllThreads()).contains(t) && !threadSet2.contains(t) && e instanceof Exception) {
+            e.printStackTrace();
+            this.fail = true;
         }
     }
 
