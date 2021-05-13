@@ -1,5 +1,6 @@
 package ir.sharif.math.ap.hw3;
 
+import junit.framework.AssertionFailedError;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -271,7 +272,7 @@ public class ThreadPoolTest {
             assertTrue(tClass.isInstance(t));
             return (T) t;
         }
-        return null;
+        throw new AssertionFailedError();
     }
 
     private void throwRun(RuntimeException throwable) {
