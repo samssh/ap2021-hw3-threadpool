@@ -1,7 +1,7 @@
 package ir.sharif.math.ap.hw3;
 
+import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.*;
@@ -13,8 +13,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class JobRunnerTest {
-    @Rule
-    public final RepeatRule repeatRule = new RepeatRule();
     private static final long TIME_SAFE_MARGIN = 50;
     private static final long RUN1_SLEEP = 100;
     private static final long RUN2_SLEEP = 200;
@@ -45,8 +43,13 @@ public class JobRunnerTest {
         new Thread(this::getLocks).start();
     }
 
+    @After
+    public void tearDown() throws Exception {
+        jobRunner.setThreadNumbers(0);
+        System.gc();
+    }
+
     @Test
-    @Repeat(10)
     public void checkResources1() {
         Job job1 = new Job(() -> run1(map, RUN2_SLEEP, 0), "g");
         Job job2 = new Job(() -> run1(map, RUN2_SLEEP, 0), "g");
@@ -72,7 +75,6 @@ public class JobRunnerTest {
     }
 
     @Test
-    @Repeat(10)
     public void checkResources2() {
         Job job1 = new Job(() -> run1(map, RUN5_SLEEP, 0), "a", "b", "c", "d", "e", "f", "g");
         Job job2 = new Job(() -> run1(map, RUN2_SLEEP, 0), "d", "e", "f", "g");
@@ -92,7 +94,6 @@ public class JobRunnerTest {
     }
 
     @Test
-    @Repeat(10)
     public void checkResources3() { // 3 < 1 < 4 < 2 < 5
         Job job1 = new Job(() -> run2(list, RUN2_SLEEP, 0, 1), "a");
         Job job2 = new Job(() -> run2(list, RUN4_SLEEP, 0, 2), "a");
@@ -123,7 +124,6 @@ public class JobRunnerTest {
     }
 
     @Test
-    @Repeat(10)
     public void checkFreeze1() { // check this
         Job job1 = new Job(() -> run2(list, RUN2_SLEEP, RUN5_SLEEP, 1), "g");
         Job job2 = new Job(() -> run2(list, RUN3_SLEEP, 0, 2), "a", "g");
@@ -162,7 +162,6 @@ public class JobRunnerTest {
     }
 
     @Test
-    @Repeat(10)
     public void checkFreeze2() {
         Job job1 = new Job(() -> run2(list, RUN4_SLEEP, RUN4_SLEEP, 1), "a");
         Job job2 = new Job(() -> run2(list, RUN2_SLEEP, RUN4_SLEEP, 2), "b");
@@ -201,7 +200,6 @@ public class JobRunnerTest {
     }
 
     @Test
-    @Repeat(5)
     public void checkFreeze3() {
         int n = 30;
         Job[] jobs = new Job[n + 1];
@@ -225,7 +223,6 @@ public class JobRunnerTest {
     }
 
     @Test
-    @Repeat(10)
     public void increaseThreadNumber() { // check this
         Job job1 = new Job(() -> run2(list, RUN2_SLEEP, RUN3_SLEEP, 1), "a");
         Job job2 = new Job(() -> run2(list, RUN5_SLEEP, 0, 2), "b");
@@ -264,7 +261,6 @@ public class JobRunnerTest {
     }
 
     @Test
-    @Repeat(10)
     public void decreaseThreadNumber() {
         Job job1 = new Job(() -> run1(map, RUN4_SLEEP, 0), "g");
         Job job2 = new Job(() -> run1(map, RUN4_SLEEP, 0), new String("g"));
@@ -310,7 +306,6 @@ public class JobRunnerTest {
     }
 
     @Test
-    @Repeat(10)
     public void sync1() {
         Job[] jobs = new Job[50];
         for (int i = 0; i < 50; i++) {
@@ -333,7 +328,6 @@ public class JobRunnerTest {
     }
 
     @Test
-    @Repeat(10)
     public void threadReusability() {
         Job job1 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, 0));
         Job job2 = new Job(() -> run5(map, threadSet, RUN2_SLEEP, 0));
