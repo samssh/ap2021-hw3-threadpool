@@ -46,11 +46,15 @@ public class ThreadPoolTest {
     @SuppressWarnings("deprecation")
     @After
     public void tearDown() {
+        sleep(30);
         threadPool.setThreadNumbers(0);
         lockerThread.interrupt();
         sleep(30);
+        System.gc();
         for (Thread t : getAllThreads()) {
             if (t != null && !threadSet2.contains(t)) {
+                System.out.println(t);
+                System.out.println(t.getState());
                 fail = true;
                 t.stop();
             }
