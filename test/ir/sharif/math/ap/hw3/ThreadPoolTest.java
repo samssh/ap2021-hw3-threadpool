@@ -57,10 +57,10 @@ public class ThreadPoolTest {
                 t.stop();
             }
         }
-        assertFalse(fail);
         sleep(30);
         System.gc();
         System.out.println(Thread.getAllStackTraces());
+        assertFalse(fail);
     }
 
     @Test
@@ -174,11 +174,13 @@ public class ThreadPoolTest {
         assertTime(startTime, endTime, RUN1_SLEEP + RUN3_SLEEP + 4 * TIME_SAFE_MARGIN);
         assertEquals(10, map.size());
         assertEquals(20, threadPool.getThreadNumbers());
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 30; i++) {
             threadPool.invokeLater(this::run1);
         }
         sleep(RUN1_SLEEP + TIME_SAFE_MARGIN);
         assertEquals(30, map.size());
+        sleep(RUN1_SLEEP);
+        assertEquals(40, map.size());
         assertNull(throwable);
     }
 
@@ -294,7 +296,7 @@ public class ThreadPoolTest {
     }
 
     private void assertTime(long start, long end, long expectedDuration) {
-        assertTrue(end - start <= expectedDuration);
+        assertTrue((end - start) + " bigger than " + expectedDuration, end - start <= expectedDuration);
     }
 
     @SuppressWarnings("BusyWait")
