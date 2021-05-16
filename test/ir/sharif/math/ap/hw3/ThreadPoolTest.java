@@ -192,6 +192,7 @@ public class ThreadPoolTest {
         assertEquals(1, map.size());
         threadPool.invokeLater(this::run2);
         assertThrows(InterruptedException.class, () -> threadPool.invokeAndWait(this::run1));
+        sleep(RUN1_SLEEP - RUN2_SLEEP + TIME_SAFE_MARGIN);
         assertEquals(2, map.size());
         assertNull(throwable);
     }
@@ -281,7 +282,7 @@ public class ThreadPoolTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T extends Throwable> T assertThrows(Class<T> tClass, ThrowingRunnable runnable) {
+    private <T extends Throwable> T assertThrows(Class<T> tClass, ThrowingRunnable runnable) {
         try {
             runnable.run();
         } catch (Throwable t) {

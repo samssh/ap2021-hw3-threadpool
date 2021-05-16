@@ -109,15 +109,18 @@ public class ThreadPool {
                     }
                     task = tasks.remove(tasks.size() - 1);
                 }
-                synchronized (task.getLock()) {
-                    try {
-                        task.getRunnable().run();
-                    } catch (Throwable throwable) {
-                        if (task.isWaiting())
-                            task.setThrowable(throwable);
+                Throwable t = null;
+                try {
+                    task.getRunnable().run();
+                } catch (Throwable throwable) {
+                    t = throwable;
+                }
+                if (task.isWaiting()) {
+                    synchronized (task.getLock()) {
+                        task.setThrowable(t);
+                        task.setDone();
+                        task.getLock().notifyAll();
                     }
-                    task.setDone();
-                    task.getLock().notifyAll();
                 }
             }
 
