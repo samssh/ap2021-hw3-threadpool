@@ -191,7 +191,10 @@ public class ThreadPoolTest {
         assertDoesNotThrow(() -> threadPool.invokeAndWaitUninterruptible(this::run1));
         assertEquals(1, map.size());
         threadPool.invokeLater(this::run2);
+        long startTime = System.currentTimeMillis();
         assertThrows(InterruptedException.class, () -> threadPool.invokeAndWait(this::run1));
+        long endTime = System.currentTimeMillis();
+        assertTime(startTime, endTime, RUN2_SLEEP + TIME_SAFE_MARGIN);
         sleep(RUN1_SLEEP - RUN2_SLEEP + TIME_SAFE_MARGIN);
         assertEquals(2, map.size());
         assertNull(throwable);
