@@ -1,9 +1,7 @@
 package ir.sharif.math.ap.hw3;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.runners.MethodSorters;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
@@ -13,14 +11,14 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import static org.junit.Assert.*;
 
-
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ThreadPoolTest {
-    @Rule
-    public RepeatRule repeatRule = new RepeatRule();
     private static final long TIME_SAFE_MARGIN = 50;
     private static final long RUN1_SLEEP = 200;
     private static final long RUN2_SLEEP = 100;
     private static final long RUN3_SLEEP = 10;
+    @Rule
+    public final AllRule allRule;
     private ThreadPool threadPool;
     private Map<Object, Object> map;
     private Thread testThread, lockerThread;
@@ -28,10 +26,13 @@ public class ThreadPoolTest {
     private Set<Thread> threadSet, threadSet2;
     private boolean fail;
 
+    public ThreadPoolTest() {
+        allRule = new AllRule(this);
+    }
+
     @Before
     public void setUp() {
         this.map = new ConcurrentHashMap<>();
-        this.testThread = Thread.currentThread();
         this.lockerThread = new Thread(this::getLocks);
         this.threadSet = new CopyOnWriteArraySet<>();
         this.threadSet2 = new CopyOnWriteArraySet<>();
@@ -46,10 +47,8 @@ public class ThreadPoolTest {
     @SuppressWarnings("deprecation")
     @After
     public void tearDown() {
-        sleep(30);
-        threadPool.setThreadNumbers(0);
         lockerThread.interrupt();
-        sleep(30);
+        sleep(50);
         System.gc();
         for (Thread t : getAllThreads()) {
             if (t != null && !threadSet2.contains(t)) {
@@ -59,11 +58,9 @@ public class ThreadPoolTest {
         }
         sleep(30);
         System.gc();
-        System.out.println(Thread.getAllStackTraces());
-        assertFalse(fail);
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void invokeLater() {
         long startTime = System.currentTimeMillis();
@@ -75,7 +72,7 @@ public class ThreadPoolTest {
         assertTime(startTime, endTime, RUN1_SLEEP + 2 * TIME_SAFE_MARGIN);
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void invokeAndWait() throws InterruptedException, InvocationTargetException {
         long startTime = System.currentTimeMillis();
@@ -90,7 +87,7 @@ public class ThreadPoolTest {
         assertTime(startTime, endTime, RUN1_SLEEP + TIME_SAFE_MARGIN);
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void parallelRun() {
         long startTime = System.currentTimeMillis();
@@ -106,7 +103,7 @@ public class ThreadPoolTest {
         assertEquals(10, map.size());
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void increaseThreadNumberTest() {
         long startTime = System.currentTimeMillis();
@@ -124,7 +121,7 @@ public class ThreadPoolTest {
         assertEquals(9, map.size());
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void decreaseThreadNumberTest() {
         long startTime = System.currentTimeMillis();
@@ -146,7 +143,7 @@ public class ThreadPoolTest {
         assertEquals(6, map.size());
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void threadSafeTest() {
         long startTime = System.currentTimeMillis();
@@ -161,7 +158,7 @@ public class ThreadPoolTest {
         assertNull(throwable);
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void threadSafeTest2() {
         long startTime = System.currentTimeMillis();
@@ -184,9 +181,10 @@ public class ThreadPoolTest {
         assertNull(throwable);
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void interruptTest() {
+        testThread = Thread.currentThread();
         threadPool.invokeLater(this::run2);
         assertDoesNotThrow(() -> threadPool.invokeAndWaitUninterruptible(this::run1));
         assertEquals(1, map.size());
@@ -200,7 +198,7 @@ public class ThreadPoolTest {
         assertNull(throwable);
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void throwTest() {
         RuntimeException runtimeException = new RuntimeException();
@@ -212,7 +210,7 @@ public class ThreadPoolTest {
         assertSame(invocationTargetException.getTargetException(), runtimeException);
     }
 
-    @Test
+    @Test(timeout = 2000)
     @Repeat(10)
     public void threadReusability() {
         long startTime = System.currentTimeMillis();
@@ -319,11 +317,12 @@ public class ThreadPoolTest {
         synchronized (threadPool) {
             synchronized (threadPool.getClass()) {
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(3000);
                 } catch (InterruptedException ignored) {
                 }
             }
         }
+        threadPool.setThreadNumbers(0);
     }
 
     private Set<Thread> getAllThreads() {
@@ -332,10 +331,13 @@ public class ThreadPoolTest {
 
     private void uncaughtException(Thread t, Throwable e) {
         if (getAllThreads().contains(t) && !threadSet2.contains(t) && e instanceof Exception) {
-            System.err.println(repeatRule.getMethodName());
             e.printStackTrace();
             this.fail = true;
         }
+    }
+
+    public boolean isFail() {
+        return fail;
     }
 
     private interface ThrowingRunnable {
