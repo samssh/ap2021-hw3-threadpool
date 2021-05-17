@@ -73,7 +73,7 @@ public class JobRunnerTest {
     }
 
 
-    @Test
+    @Test(timeout = 3000)
     @Repeat(10)
     public void checkResources1() {
         Job job1 = new Job(() -> run1(RUN2_SLEEP, 0), "g");
@@ -99,7 +99,7 @@ public class JobRunnerTest {
         jobRunner1.setThreadNumbers(0);
     }
 
-    @Test
+    @Test(timeout = 3000)
     @Repeat(10)
     public void checkResources2() {
         Job job1 = new Job(() -> run1(RUN5_SLEEP, 0), "a", "b", "c", "d", "e", "f", "g");
@@ -119,7 +119,7 @@ public class JobRunnerTest {
         assertEquals(4, map.size());
     }
 
-    @Test
+    @Test(timeout = 3000)
     @Repeat(10)
     public void checkResources3() { // 3 < 1 < 4 < 2 < 5
         Job job1 = new Job(() -> run2(RUN2_SLEEP, 0, 1), "a");
@@ -150,7 +150,7 @@ public class JobRunnerTest {
         assertEquals(3, list.get(3).intValue());
     }
 
-    @Test
+    @Test(timeout = 3000)
     @Repeat(10)
     public void checkFreeze1() { // check this
         Job job1 = new Job(() -> run2(RUN2_SLEEP, RUN5_SLEEP, 1), "g");
@@ -189,7 +189,7 @@ public class JobRunnerTest {
         assertEquals(4, list.get(3).intValue());
     }
 
-    @Test
+    @Test(timeout = 3000)
     @Repeat(10)
     public void checkFreeze2() {
         Job job1 = new Job(() -> run2(RUN4_SLEEP, RUN4_SLEEP, 1), "a");
@@ -228,7 +228,7 @@ public class JobRunnerTest {
         assertEquals(3, list.get(2).intValue());
     }
 
-    @Test
+    @Test(timeout = 10000)
     @Repeat(3)
     public void checkFreeze3() {
         int n = 30;
@@ -256,7 +256,7 @@ public class JobRunnerTest {
         assertEquals(n + 1, map.size());
     }
 
-    @Test
+    @Test(timeout = 3000)
     @Repeat(10)
     public void increaseThreadNumber() { // check this
         Job job1 = new Job(() -> run2(RUN2_SLEEP, RUN3_SLEEP, 1), "a");
@@ -295,7 +295,7 @@ public class JobRunnerTest {
         assertEquals(2, list.get(2).intValue());
     }
 
-    @Test
+    @Test(timeout = 3000)
     @Repeat(10)
     public void decreaseThreadNumber() {
         Job job1 = new Job(() -> run1(RUN4_SLEEP, 0), "g");
@@ -341,7 +341,7 @@ public class JobRunnerTest {
         assertEquals(6, list.get(2).intValue());
     }
 
-    @Test
+    @Test(timeout = 3000)
     @Repeat(10)
     public void sync1() {
         Job[] jobs = new Job[50];
@@ -364,7 +364,7 @@ public class JobRunnerTest {
         assertEquals(50, list.size());
     }
 
-    @Test
+    @Test(timeout = 3000)
     @Repeat(10)
     public void threadReusability() {
         Job job1 = new Job(() -> run5(RUN1_SLEEP, 1));
