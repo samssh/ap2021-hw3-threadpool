@@ -55,10 +55,8 @@ public class JobRunnerTest {
     @SuppressWarnings("deprecation")
     @After
     public void tearDown() {
-        sleep(30);
-        jobRunner.setThreadNumbers(0);
         lockerThread.interrupt();
-        sleep(30);
+        sleep(50);
         System.gc();
         for (Thread t : getAllThreads()) {
             if (t != null && !threadSet2.contains(t)) {
@@ -114,7 +112,6 @@ public class JobRunnerTest {
         assertTime(startTime, endTime, RUN2_SLEEP + 2 * TIME_SAFE_MARGIN);
         sleep(RUN5_SLEEP - RUN2_SLEEP);
         assertEquals(3, map.size());
-        sleep(RUN2_SLEEP);
         sleep(RUN2_SLEEP);
         assertEquals(4, map.size());
     }
@@ -430,11 +427,12 @@ public class JobRunnerTest {
         synchronized (jobRunner) {
             synchronized (resources) {
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(4000);
                 } catch (InterruptedException ignored) {
                 }
             }
         }
+        jobRunner.setThreadNumbers(0);
     }
 
     private Set<Thread> getAllThreads() {
@@ -442,6 +440,7 @@ public class JobRunnerTest {
     }
 
     private void uncaughtException(Thread t, Throwable e) {
+        e.printStackTrace();
         if (getAllThreads().contains(t) && !threadSet2.contains(t) && e instanceof Exception) {
             System.err.println(repeatRule.getMethodName());
             e.printStackTrace();
@@ -449,11 +448,15 @@ public class JobRunnerTest {
         }
     }
 
-    private void sleep(long l) {
-        try {
-            Thread.sleep(l);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    @SuppressWarnings("BusyWait")
+    private void sleep(long sleepTime) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < sleepTime) {
+            try {
+                Thread.sleep(sleepTime);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 }
