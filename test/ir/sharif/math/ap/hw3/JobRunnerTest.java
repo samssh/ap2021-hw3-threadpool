@@ -1,26 +1,26 @@
 package ir.sharif.math.ap.hw3;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.runners.MethodSorters;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class JobRunnerTest {
-    @Rule
-    public RepeatRule repeatRule = new RepeatRule();
     private static final long TIME_SAFE_MARGIN = 50;
     private static final long RUN1_SLEEP = 100;
     private static final long RUN2_SLEEP = 200;
     private static final long RUN3_SLEEP = 300;
     private static final long RUN4_SLEEP = 400;
     private static final long RUN5_SLEEP = 500;
+    @Rule
+    public final AllRule allRule;
     private Map<Object, Object> map;
     private List<Integer> list;
     private JobRunner jobRunner;
@@ -28,6 +28,10 @@ public class JobRunnerTest {
     private Map<String, Integer> resources;
     private Set<Thread> threadSet, threadSet2;
     private boolean fail;
+
+    public JobRunnerTest() {
+        allRule = new AllRule(this);
+    }
 
     @Before
     public void setUp() {
@@ -64,12 +68,14 @@ public class JobRunnerTest {
                 t.stop();
             }
         }
-        assertFalse(fail);
         sleep(30);
         System.gc();
-        System.out.println(Thread.getAllStackTraces());
     }
 
+
+    public boolean isFail() {
+        return fail;
+    }
 
     @Test(timeout = 3000)
     @Repeat(10)
@@ -440,9 +446,7 @@ public class JobRunnerTest {
     }
 
     private void uncaughtException(Thread t, Throwable e) {
-        e.printStackTrace();
-        if (getAllThreads().contains(t) && !threadSet2.contains(t) && e instanceof Exception) {
-            System.err.println(repeatRule.getMethodName());
+        if (!threadSet2.contains(t) && e instanceof Exception) {
             e.printStackTrace();
             this.fail = true;
         }
@@ -451,12 +455,13 @@ public class JobRunnerTest {
     @SuppressWarnings("BusyWait")
     private void sleep(long sleepTime) {
         long startTime = System.currentTimeMillis();
-        while (System.currentTimeMillis() - startTime < sleepTime) {
+        long sleepLeft = sleepTime;
+        while (sleepLeft > 0) {
             try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.sleep(sleepLeft);
+            } catch (InterruptedException ignore) {
             }
+            sleepLeft = startTime + sleepTime - System.currentTimeMillis();
         }
     }
 }
